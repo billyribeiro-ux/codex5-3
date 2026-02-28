@@ -22,6 +22,20 @@ export type AppErrorCode = z.infer<typeof appErrorCodeSchema>;
 export type AppErrorData = z.infer<typeof appErrorSchema>;
 export type FieldErrors = NonNullable<AppErrorData['fieldErrors']>;
 
+const toFieldErrors = (issues: z.ZodIssue[]): FieldErrors => {
+	const fieldErrors: FieldErrors = {};
+
+	for (const issue of issues) {
+		const field = String(issue.path[0] ?? 'form');
+		if (!fieldErrors[field]) {
+			fieldErrors[field] = [];
+		}
+		fieldErrors[field].push(issue.message);
+	}
+
+	return fieldErrors;
+};
+
 const FALLBACK_INTERNAL_ERROR: AppErrorData = {
 	code: 'INTERNAL',
 	httpStatus: 500,
@@ -56,6 +70,16 @@ export function toAppErrorData(error: unknown): AppErrorData {
 
 	if (isRecord(error) && isAppErrorData(error.body)) {
 		return error.body;
+	}
+
+	if (error instanceof z.ZodError) {
+		return {
+			code: 'VALIDATION',
+			httpStatus: 400,
+			message: 'Input validation failed',
+			retriable: false,
+			fieldErrors: toFieldErrors(error.issues)
+		};
 	}
 
 	if (isRecord(error)) {
