@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { POST } from './+server';
 import { actions } from './+page.server';
-import type { RequestEvent } from '@sveltejs/kit';
 
 const locals = {
 	requestId: 'integration-request-id',
@@ -11,11 +10,22 @@ const locals = {
 	}
 };
 
-const asEvent = (request: Request): RequestEvent =>
+const asEndpointEvent = (request: Request): Parameters<typeof POST>[0] =>
 	({
 		request,
 		locals
-	} as unknown as RequestEvent);
+	} as Parameters<typeof POST>[0]);
+
+const createAction = actions.create;
+if (!createAction) {
+	throw new Error('Expected create action to be defined');
+}
+
+const asCreateActionEvent = (request: Request): Parameters<typeof createAction>[0] =>
+	({
+		request,
+		locals
+	} as Parameters<typeof createAction>[0]);
 
 describe('projects transports integration', () => {
 	it('creates project via +server fallback endpoint', async () => {
@@ -33,7 +43,7 @@ describe('projects transports integration', () => {
 			})
 		});
 
-		const response = await POST(asEvent(request));
+		const response = await POST(asEndpointEvent(request));
 		expect(response.status).toBe(200);
 
 		const body = (await response.json()) as { project: { name: string } };
@@ -50,7 +60,7 @@ describe('projects transports integration', () => {
 			body: formData
 		});
 
-		const result = await actions.create(asEvent(request));
+		const result = await createAction(asCreateActionEvent(request));
 		expect(result).toBeTypeOf('object');
 		expect(result).toHaveProperty('project');
 		expect((result as { project: { name: string } }).project.name).toBe('Action Created Project');

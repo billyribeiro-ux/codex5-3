@@ -1,13 +1,13 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions, RequestEvent, ServerLoad } from '@sveltejs/kit';
 import { toAppErrorData } from '$lib/errors/appError';
 import { throwHttpAppError } from '$lib/server/httpError';
 import { createServiceContext } from '$lib/server/services/context';
 import { projectService } from '$lib/server/services/projectService';
+import type { Actions, PageServerLoad } from './$types';
 
 const isActionFailureStatus = (status: number): boolean => status >= 400 && status < 500;
 
-export const load: ServerLoad = async (event: RequestEvent) => {
+export const load: PageServerLoad = async (event) => {
 	try {
 		const context = createServiceContext(event);
 		return {
@@ -20,7 +20,7 @@ export const load: ServerLoad = async (event: RequestEvent) => {
 };
 
 export const actions: Actions = {
-	create: async (event: RequestEvent) => {
+	create: async (event) => {
 		const formData = await event.request.formData();
 		const input = {
 			name: String(formData.get('name') ?? ''),
@@ -41,7 +41,7 @@ export const actions: Actions = {
 		}
 	},
 
-	update: async (event: RequestEvent) => {
+	update: async (event) => {
 		const formData = await event.request.formData();
 		const input = {
 			id: String(formData.get('id') ?? ''),
@@ -64,7 +64,7 @@ export const actions: Actions = {
 		}
 	},
 
-	delete: async (event: RequestEvent) => {
+	delete: async (event) => {
 		const formData = await event.request.formData();
 		const input = {
 			id: String(formData.get('id') ?? '')

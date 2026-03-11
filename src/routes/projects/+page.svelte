@@ -17,17 +17,20 @@
 
 	let { data, form }: PageProps = $props();
 
-	let projects = $state<Project[]>([...data.projects]);
+	const getFormError = (value: PageProps['form']): AppErrorData | null => {
+		if (!value || typeof value !== 'object' || !('appError' in value)) {
+			return null;
+		}
+
+		return ((value as { appError?: AppErrorData }).appError ?? null) as AppErrorData | null;
+	};
+
+	let projects = $derived<Project[]>(data.projects ?? []);
 	let isBusy = $state(false);
 	let simulateTransportFailure = $state(false);
 	let lastTransport = $state<TransportPath | null>(null);
 	let remoteAttempts = $state(0);
-
-	let initialError: AppErrorData | null = null;
-	if (form && typeof form === 'object' && 'appError' in form) {
-		initialError = ((form as { appError?: AppErrorData }).appError ?? null) as AppErrorData | null;
-	}
-	let globalError = $state<AppErrorData | null>(initialError);
+	let globalError = $derived<AppErrorData | null>(getFormError(form));
 
 	const withOptionalTransportFailure = <T>(operation: () => Promise<T>): (() => Promise<T>) => {
 		return async () => {
@@ -301,7 +304,7 @@
 			<p>HTTP {globalError.httpStatus} · retriable: {String(globalError.retriable)}</p>
 			{#if globalError.fieldErrors}
 				<ul>
-					{#each Object.entries(globalError.fieldErrors) as [field, messages]}
+					{#each Object.entries(globalError.fieldErrors) as [field, messages] (field)}
 						<li><strong>{field}:</strong> {messages.join(', ')}</li>
 					{/each}
 				</ul>

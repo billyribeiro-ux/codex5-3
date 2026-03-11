@@ -40,7 +40,7 @@ const FALLBACK_INTERNAL_ERROR: AppErrorData = {
 	code: 'INTERNAL',
 	httpStatus: 500,
 	message: 'An unexpected error occurred',
-	retriable: true
+	retriable: false
 };
 
 export class AppError extends Error {
@@ -61,14 +61,38 @@ export const isAppErrorData = (value: unknown): value is AppErrorData =>
 
 export function toAppErrorData(error: unknown): AppErrorData {
 	if (error instanceof AppError) {
+		if (error.data.httpStatus >= 500) {
+			return {
+				...error.data,
+				code: 'TRANSPORT_FAILURE',
+				retriable: true
+			};
+		}
+
 		return error.data;
 	}
 
 	if (isAppErrorData(error)) {
+		if (error.httpStatus >= 500) {
+			return {
+				...error,
+				code: 'TRANSPORT_FAILURE',
+				retriable: true
+			};
+		}
+
 		return error;
 	}
 
 	if (isRecord(error) && isAppErrorData(error.body)) {
+		if (error.body.httpStatus >= 500) {
+			return {
+				...error.body,
+				code: 'TRANSPORT_FAILURE',
+				retriable: true
+			};
+		}
+
 		return error.body;
 	}
 
@@ -92,6 +116,15 @@ export function toAppErrorData(error: unknown): AppErrorData {
 				httpStatus: status,
 				message: message ?? 'Remote transport failed',
 				retriable: true
+			};
+		}
+
+		if (status && status >= 400) {
+			return {
+				code: 'INTERNAL',
+				httpStatus: status,
+				message: message ?? 'Request failed',
+				retriable: false
 			};
 		}
 	}
